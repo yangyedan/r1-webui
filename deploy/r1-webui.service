@@ -1,0 +1,19 @@
+[Unit]
+Description=R1 WebUI - 斐讯 R1 自建 AI 后端
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 改成实际运行用户与目录
+User=youruser
+Group=yourgroup
+WorkingDirectory=/opt/r1-webui
+ExecStart=/usr/bin/python3 /opt/r1-webui/server.py
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+
+[Install]
+WantedBy=multi-user.target
