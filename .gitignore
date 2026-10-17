@@ -1,0 +1,26 @@
+# 本地配置（含 API Key / 内网地址），不要提交
+config.json
+webui_state.json
+history.json
+favorites.json
+
+# 运行产物
+__pycache__/
+*.pyc
+*.pyo
+
+# 媒体文件不入库
+media/
+*.mp3
+*.flac
+*.wav
+*.m4a
+*.wma
+*.ogg
+*.opus
+
+# 编辑器/系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
