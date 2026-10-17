@@ -1,5 +1,7 @@
 # r1-webui — 斐讯 R1 智能音箱 Web 控制台 & 自建 AI 后端
 
+[English](README.en.md) | **简体中文**
+
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 
@@ -7,6 +9,8 @@
 全部在你自己的服务器/NAS 上运行，不依赖任何第三方中转服务。附带一个功能完整的 Web 控制台。
 
 > 零第三方依赖，只用 Python 标准库；一条命令启动。
+
+![控制台截图](docs/screenshot-control.png)
 
 ---
 
@@ -253,6 +257,21 @@ python3 r1_ctl.py --ip <ip>:18888 raw '{"action":"ai","data":{"type":"query"}}'
 - 长音频播放中断
 
 ---
+
+## 致谢
+
+这个项目站在不少人肩膀上：
+
+- **[ring1012/r1-py](https://github.com/ring1012/r1-py)** — 「用小讯玩转 AI」项目的 AI 边缘服务（MIT）。
+  本项目最初的协议认知来自它的实现，包括云知声信封的字段结构和 `x-r1-ai` 头的用法。
+- **[ring1012/r1-dummy](https://github.com/ring1012/r1-dummy)** — 公开提供的 `adb.exe` 与改造版 APK 分发包。
+  没有它就没有「不拆机」这条路。
+- **恩山无线论坛 / R1 玩家社区** — 硬件资料、3448 固件、DLNA 行为、各种踩坑记录。
+- **[Open-Meteo](https://open-meteo.com/)** — 免费免 Key 的天气与地理编码 API。
+- **[awesome-dsh-plugin](https://awesome-dsh-plugin.com/)** — DSH 插件生态目录。
+- 以及所有把斐讯 R1 从「智障音箱」救回来的人。
+
+> 本项目与上述项目无隶属关系，也不包含它们的闭源代码/二进制。协议结论均为独立复现与真机验证。
 
 ## 免责声明
 
