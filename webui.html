@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小讯控制台</title>
+<style>
+  :root{--bg:#0b0f14;--card:#151b23;--card2:#1b232d;--line:#26303c;--fg:#e6edf3;--dim:#8b98a5;--acc:#3b82f6;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  a{color:var(--acc);text-decoration:none}
+  .wrap{max-width:1000px;margin:0 auto;padding:18px}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-size:18px;margin:0;font-weight:600}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--dim)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#555}
+  .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.off{background:var(--err)}
+  nav{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  nav a{padding:7px 14px;border-radius:8px;background:var(--card);border:1px solid var(--line);color:var(--dim)}
+  nav a.act{background:var(--acc);border-color:var(--acc);color:#fff}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+  .row{display:flex;align-items:center;gap:10px}
+  .between{justify-content:space-between}
+  .muted{color:var(--dim);font-size:12px}
+  .title{font-size:17px;font-weight:600}
+  .sub{color:var(--dim);font-size:13px}
+  .bar{height:6px;background:#0d1219;border-radius:999px;overflow:hidden;margin:12px 0 6px}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,#3b82f6,#22d3ee);width:0}
+  .btns{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  button{cursor:pointer;border:1px solid var(--line);background:var(--card2);color:var(--fg);border-radius:9px;padding:9px 14px;font-size:14px;transition:.15s}
+  button:hover{background:#232d3a}
+  button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+  button.primary:hover{filter:brightness(1.1)}
+  button.big{width:52px;height:52px;border-radius:50%;font-size:18px;display:grid;place-items:center;padding:0}
+  button.sm{padding:5px 10px;font-size:13px;border-radius:7px}
+  input,select,textarea{background:#0d1219;border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:9px 11px;font-size:14px;width:100%;font-family:inherit}
+  textarea{min-height:66px;resize:vertical}
+  label{display:block;font-size:12px;color:var(--dim);margin:12px 0 5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+  input[type=range]{padding:0;height:28px;accent-color:var(--acc)}
+  .list{margin-top:6px}
+  .it{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .it:last-child{border-bottom:0}
+  .it .meta{flex:1;min-width:0}
+  .it .meta .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag{font-size:11px;padding:2px 7px;border-radius:5px;background:#1e2a36;color:var(--dim)}
+  .tabs{display:flex;gap:8px;margin:14px 0 4px;flex-wrap:wrap}
+  .tabs button{padding:6px 13px;font-size:13px}
+  .tabs button.act{background:var(--acc);border-color:var(--acc);color:#fff}
+  .fav{color:var(--warn)}
+  #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(80px);background:#1e2a36;border:1px solid var(--line);color:#fff;padding:11px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;z-index:99}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:13px}
+  .kv b{color:var(--dim);font-weight:400}
+  .hide{display:none}
+  .pager{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🔊 小讯控制台</h1>
+    <span class="chip"><span class="dot" id="devdot"></span><span id="devname">未指定设备</span></span>
+    <span style="flex:1"></span>
+    <span class="muted" id="clock"></span>
+  </header>
+
+  <nav>
+    <a data-page="ctl" class="act">控制台</a>
+    <a data-page="lib">音乐库</a>
+    <a data-page="story">故事</a>
+    <a data-page="radio">广播</a>
+    <a data-page="ai">AI 配置</a>
+    <a data-page="cfg">设置</a>
+  </nav>
+
+  <!-- ============ 控制台 ============ -->
+  <section id="page-ctl">
+    <div class="card">
+      <div class="row between">
+        <div style="min-width:0">
+          <div class="title" id="np-title">未在播放</div>
+          <div class="sub" id="np-artist">—</div>
+        </div>
+        <span class="tag" id="np-state">—</span>
+      </div>
+      <div class="bar"><i id="np-bar"></i></div>
+      <div class="row between muted"><span id="np-cur">0:00</span><span id="np-tot">0:00</span></div>
+      <div class="btns">
+        <button class="big" onclick="cmd('prev')">⏮</button>
+        <button class="big primary" id="btn-pp" onclick="togglePlay()">▶</button>
+        <button class="big" onclick="cmd('next')">⏭</button>
+        <span style="flex:1"></span>
+        <span class="muted">音量</span>
+        <input type="range" min="0" max="100" id="vol" style="width:140px" onchange="setVol(this.value)">
+        <span class="muted" id="volval">—</span>
+      </div>
+      <div class="btns">
+        <button class="sm" onclick="dlnaCtl('pause')">⏸ DLNA 暂停</button>
+        <button class="sm" onclick="dlnaCtl('stop')">⏹ DLNA 停止</button>
+        <span class="muted">（网页点播走 DLNA，独立于上面按钮）</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row between"><b>设备信息</b><span class="muted" id="dev-ip"></span></div>
+      <div class="kv" style="margin-top:12px">
+        <b>序列号</b><span id="kv-serial">—</span>
+        <b>播放状态</b><span id="kv-state">—</span>
+        <b>列表长度</b><span id="kv-listlen">—</span>
+        <b>AI 后端</b><span id="kv-backend">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row between"><b>最近播放</b><button class="sm" onclick="loadInto('ctl-history','/api/history',5)">刷新</button></div>
+      <div class="list" id="ctl-history"><p class="muted">加载中…</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 音乐库 ============ -->
+  <section id="page-lib" class="hide">
+    <div class="card">
+      <div class="row">
+        <input id="q" placeholder="搜索歌名 / 歌手，回车搜索" onkeydown="if(event.key==='Enter')doSearch()">
+        <button class="primary" onclick="doSearch()">搜索</button>
+      </div>
+      <div class="tabs">
+        <button data-tab="all" class="act" onclick="switchTab('all')">全部音乐</button>
+        <button data-tab="fav" onclick="switchTab('fav')">★ 喜欢</button>
+        <button data-tab="hist" onclick="switchTab('hist')">播放历史</button>
+      </div>
+      <div class="muted" id="lib-count"></div>
+      <div class="list" id="lib-list"><p class="muted">加载中…</p></div>
+      <div class="pager hide" id="pager">
+        <button class="sm" onclick="pageMove(-1)">上一页</button>
+        <span class="muted" id="pageinfo"></span>
+        <button class="sm" onclick="pageMove(1)">下一页</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 故事 / 有声书 ============ -->
+  <section id="page-story" class="hide">
+    <div class="card">
+      <div class="row between"><b>故事 / 有声书</b><button class="sm" onclick="loadStory()">刷新</button></div>
+      <p class="muted" id="story-root" style="margin:10px 0 0"></p>
+      <div class="list" id="story-list"><p class="muted">加载中…</p></div>
+      <div class="pager hide" id="story-pager">
+        <button class="sm" onclick="storyPage(-1)">上一页</button>
+        <span class="muted" id="story-pageinfo"></span>
+        <button class="sm" onclick="storyPage(1)">下一页</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 广播 ============ -->
+  <section id="page-radio" class="hide">
+    <div class="card">
+      <div class="row between"><b>广播电台</b><button class="sm" onclick="loadRadio()">刷新</button></div>
+      <p class="muted" style="margin:10px 0 0">点「播放」是通过 DLNA 投放直播流；也可以直接对音箱说「小讯小讯，播放亚洲经典台」。</p>
+      <div class="list" id="radio-list"><p class="muted">加载中…</p></div>
+    </div>
+
+    <div class="card">
+      <b>添加电台</b>
+      <div class="grid2">
+        <div><label>名称</label><input id="r-name" placeholder="比如 中国之声"></div>
+        <div><label>直播流地址（http/https，mp3/aac）</label><input id="r-url" placeholder="http://.../live/xxx.mp3"></div>
+      </div>
+      <div class="btns"><button class="primary" onclick="addRadio()">添加</button></div>
+      <p class="muted" id="r-msg" style="margin:10px 0 0"></p>
+    </div>
+  </section>
+
+  <!-- ============ AI 配置 ============ -->
+  <section id="page-ai" class="hide">
+    <div class="card">
+      <div class="row between">
+        <b>AI 配置</b>
+        <label style="margin:0;display:flex;align-items:center;gap:8px;color:var(--fg)">
+          <input type="checkbox" id="ai-enabled" style="width:auto"> 启用 AI
+        </label>
+      </div>
+      <p class="muted" style="margin:10px 0 0">改的是<strong>音箱本地</strong>配置。作者网页把后端地址写死成他的服务器，这里没有限制。</p>
+      <label>AI 后端地址（关键）</label>
+      <input id="ai-backend" placeholder="http://192.168.1.10:8866">
+      <div class="grid2">
+        <div><label>模型</label><input id="ai-model"></div>
+        <div><label>模型接口 base_url</label><input id="ai-endpoint"></div>
+      </div>
+      <label>API Key</label><input id="ai-key" type="password">
+      <label>系统提示词</label><textarea id="ai-prompt"></textarea>
+      <label>extraBody (JSON，可空)</label><input id="ai-extra" placeholder="{}">
+      <div class="btns">
+        <button class="primary" onclick="saveAI()">保存到音箱</button>
+        <button onclick="loadAI()">重新读取</button>
+      </div>
+      <p class="muted" id="ai-msg" style="margin:10px 0 0"></p>
+    </div>
+  </section>
+
+  <!-- ============ 设置（天气地点 / 音乐源 / 故事源） ============ -->
+  <section id="page-cfg" class="hide">
+    <div class="card">
+      <b>天气地点</b>
+      <p class="muted" style="margin:10px 0 0">问「今天天气怎么样」时没提城市，就用这里的地点。</p>
+      <div class="grid2">
+        <div><label>城市名</label><input id="w-loc" placeholder="公安县"></div>
+        <div><label>时区</label><input id="w-tz" placeholder="Asia/Shanghai"></div>
+      </div>
+      <div class="grid2">
+        <div><label>纬度</label><input id="w-lat" placeholder="30.06056"></div>
+        <div><label>经度</label><input id="w-lon" placeholder="112.22417"></div>
+      </div>
+      <p class="muted" style="margin:8px 0 0">县级地名 Open-Meteo 常查不到，建议填经纬度（可去地图上右键取坐标）。</p>
+      <div class="btns"><button class="primary" onclick="saveWeather()">保存天气地点</button><button onclick="loadSettings()">重新读取</button></div>
+      <p class="muted" id="w-msg" style="margin:10px 0 0"></p>
+    </div>
+
+    <div class="card">
+      <b>内置音乐源</b>
+      <p class="muted" style="margin:10px 0 0">语音点歌优先用你 NAS 的曲库；这里是设备自己的兜底音源。</p>
+      <div class="grid2">
+        <div><label>Provider</label>
+          <select id="m-provider"><option value="wy">网易云 (wy)</option><option value="kw">酷我 (kw)</option><option value="tx">腾讯 (tx)</option></select>
+        </div>
+        <div><label>自定义 endpoint（可空）</label><input id="m-endpoint" placeholder="留空用内置"></div>
+      </div>
+      <div class="btns"><button class="primary" onclick="saveMusic()">保存音乐源</button></div>
+      <p class="muted" id="m-msg" style="margin:10px 0 0"></p>
+    </div>
+
+    <div class="card">
+      <b>故事源</b>
+      <p class="muted" style="margin:10px 0 0">设备内置的故事音源。你自己的故事音频放到 NAS 的 <code>音乐/audiobooks</code>，在「故事」页播放。</p>
+      <div class="grid2">
+        <div><label>Provider</label>
+          <select id="s-provider"><option value="bilibili">bilibili</option><option value="youtube">youtube</option></select>
+        </div>
+        <div><label>自定义 endpoint（可空）</label><input id="s-endpoint" placeholder="留空用内置"></div>
+      </div>
+      <div class="btns"><button class="primary" onclick="saveStorySvc()">保存故事源</button></div>
+      <p class="muted" id="s-msg" style="margin:10px 0 0"></p>
+    </div>
+  </section>
+
+</div>
+<div id="toast"></div>
+
+<script>
+const P = new URLSearchParams(location.search);
+let IP = P.get('ip') || localStorage.getItem('r1_last_ip') || '';
+if (IP) localStorage.setItem('r1_last_ip', IP);
+
+let STATUS=null, PLAYING=false;
+let FAVSET=new Set(), TAB='all', OFFSET=0, LIMIT=60, TOTAL=0, LASTQ='';
+
+function toast(m, ms=2800){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),ms); }
+function fmt(ms){ ms=Math.max(0,Math.floor(ms/1000)); return Math.floor(ms/60)+':'+String(ms%60).padStart(2,'0'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function api(p,o){ const r=await fetch(p,o); const t=await r.text(); try{return JSON.parse(t);}catch(e){throw new Error(t.slice(0,200));} }
+function jpost(p,b){ return api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}); }
+function wi(p){ return IP ? p + (p.includes('?')?'&':'?') + 'ip=' + encodeURIComponent(IP) : p; }
+
+// ---------- 设备状态 ----------
+async function refresh(){
+  document.getElementById('devname').textContent = IP || '未指定设备';
+  document.getElementById('dev-ip').textContent = IP || '';
+  if(!IP){ document.getElementById('devdot').className='dot off'; return; }
+  try{
+    const st = await api(wi('/api/status'));
+    if(!st || st.error){ document.getElementById('devdot').className='dot off'; document.getElementById('np-title').textContent='不在线'; return; }
+    document.getElementById('devdot').className='dot on';
+    STATUS=st;
+    const states=st.states||{}, pos=st.position||{}, list=states.playList||[];
+    const cur = list[states.playIndex] || null;
+    PLAYING = states.playState===1;
+    document.getElementById('btn-pp').textContent = PLAYING?'⏸':'▶';
+    document.getElementById('np-title').textContent = cur?cur.title:'未在播放';
+    document.getElementById('np-artist').textContent = cur?(cur.artist||'')+(cur.album?' · '+cur.album:''):'—';
+    const total=pos.total_time||0, cur_t=pos.play_time||0;
+    document.getElementById('np-bar').style.width = total?Math.min(100,cur_t/total*100)+'%':'0';
+    document.getElementById('np-cur').textContent=fmt(cur_t);
+    document.getElementById('np-tot').textContent=fmt(total);
+    const m={0:'空闲',1:'播放中',2:'已暂停',3:'缓冲中'};
+    document.getElementById('np-state').textContent=m[states.playState]??'—';
+    document.getElementById('kv-state').textContent=m[states.playState]??'—';
+    document.getElementById('kv-serial').textContent=st.serial||'—';
+    document.getElementById('kv-listlen').textContent=list.length;
+    const v=st.volume??0;
+    document.getElementById('vol').value=v; document.getElementById('volval').textContent=v;
+  }catch(e){ document.getElementById('devdot').className='dot off'; }
+}
+async function cmd(a,d){
+  if(!IP){ toast('先指定设备：地址后加 ?ip=音箱IP:18888'); return; }
+  try{ const r=await jpost(wi('/api/cmd'),{action:a,data:d}); if(r&&r.error) toast('失败：'+r.error); setTimeout(refresh,500); }catch(e){ toast('失败：'+e.message); }
+}
+function togglePlay(){ cmd(PLAYING?'pause':'play'); }
+function setVol(v){ cmd('volume',{volume:parseInt(v,10)}); }
+async function dlnaCtl(what){
+  if(!IP){ toast('先指定设备'); return; }
+  try{ const r=await jpost(wi('/api/dlna/'+what),{}); toast(r.ok?'已发送':'失败：'+(r.error||'')); }catch(e){ toast('失败：'+e.message); }
+}
+
+// ---------- 列表渲染 ----------
+function row(it){
+  const fav = FAVSET.has(it.rel);
+  const id = 'fav_' + (it.rel||'').replace(/[^a-zA-Z0-9]/g,'_');
+  return `<div class="it">
+    <div class="meta">
+      <div class="t">${esc(it.title)} <span class="tag">${esc(it.artist||'未知')}</span>${it._hist?' <span class="tag">'+new Date(it.at*1000).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span>':''}</div>
+      <div class="muted">${esc(it.album||'')} · ${esc((it.url||'').split('/').pop())}</div>
+    </div>
+    <button class="sm" id="${id}" onclick="toggleFav(this,'${escAttr(it.rel)}')" title="喜欢">${fav?'★':'☆'}</button>
+    <button class="primary sm" onclick="playItem('${escAttr(it.rel)}')">▶ 播放</button>
+  </div>`;
+}
+function escAttr(s){ return String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+let CACHE = {};
+function renderInto(elId, items, store){
+  const el = document.getElementById(elId);
+  if(!items || !items.length){ el.innerHTML='<p class="muted">暂无</p>'; return; }
+  items.forEach(it=>{ if(it.rel) CACHE[it.rel]=it; });
+  el.innerHTML = items.map(row).join('');
+}
+async function loadInto(elId, url, limit){
+  try{
+    const r = await api(url);
+    let items = r.items||[];
+    if(limit) items = items.slice(0,limit);
+    renderInto(elId, items);
+  }catch(e){ document.getElementById(elId).innerHTML='<p class="muted">加载失败：'+esc(e.message)+'</p>'; }
+}
+
+// ---------- 点播 / 喜欢 ----------
+async function playItem(rel){
+  const it = CACHE[rel];
+  if(!it){ toast('数据丢失，请刷新'); return; }
+  if(!IP){ toast('先指定设备'); return; }
+  toast('正在投放…');
+  try{
+    const r = await jpost(wi('/api/dlna/play'), {url:it.url, title:it.title, artist:it.artist});
+    toast(r.ok ? '已投放到音箱：'+it.title : '投放失败：'+(r.error||''));
+    setTimeout(loadInto,800,'ctl-history','/api/history',5);
+  }catch(e){ toast('投放失败：'+e.message); }
+}
+async function toggleFav(btn, rel){
+  if(!IP){ /* 喜欢不需要设备 */ }
+  const on = !FAVSET.has(rel);
+  try{
+    const r = await jpost('/api/favorites', {rel, on});
+    FAVSET = new Set((r.items||[]).map(x=>x.rel));
+    btn.textContent = on?'★':'☆';
+    if(TAB==='fav') loadTab();
+  }catch(e){ toast('失败：'+e.message); }
+}
+async function loadFavs(){
+  try{ const r=await api('/api/favorites'); FAVSET=new Set((r.items||[]).map(x=>x.rel)); }catch(e){}
+}
+
+// ---------- 音乐库 ----------
+function switchTab(t){ TAB=t; OFFSET=0; document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('act',b.dataset.tab===t)); document.getElementById('pager').classList.toggle('hide', t!=='all'); loadTab(); }
+function doSearch(){ LASTQ=document.getElementById('q').value.trim(); OFFSET=0; if(TAB!=='all') switchTab('all'); else loadTab(); }
+function pageMove(d){ OFFSET=Math.max(0,OFFSET+d*LIMIT); loadTab(); }
+async function loadTab(){
+  const el=document.getElementById('lib-list');
+  el.innerHTML='<p class="muted">加载中…</p>';
+  document.getElementById('lib-count').textContent='';
+  try{
+    if(TAB==='fav'){
+      const r=await api('/api/favorites');
+      renderInto('lib-list', r.items||[]);
+      document.getElementById('lib-count').textContent=(r.items||[]).length+' 首';
+    } else if(TAB==='hist'){
+      const r=await api('/api/history');
+      const items=(r.items||[]).map(x=>({...x,_hist:true}));
+      renderInto('lib-list', items);
+      document.getElementById('lib-count').textContent=items.length+' 首';
+    } else {
+      const u='/api/library/all?offset='+OFFSET+'&limit='+LIMIT+(LASTQ?'&q='+encodeURIComponent(LASTQ):'');
+      const r=await api(u);
+      TOTAL=r.total||0;
+      renderInto('lib-list', r.items||[]);
+      document.getElementById('lib-count').textContent='共 '+TOTAL+' 首'+(LASTQ?'（搜索：'+LASTQ+'）':'');
+      document.getElementById('pageinfo').textContent=Math.floor(OFFSET/LIMIT)+1+' / '+Math.max(1,Math.ceil(TOTAL/LIMIT));
+    }
+  }catch(e){ el.innerHTML='<p class="muted">加载失败：'+esc(e.message)+'</p>'; }
+}
+
+// ---------- AI ----------
+async function loadAI(){
+  if(!IP){ toast('先指定设备'); return; }
+  try{
+    const r=await api(wi('/api/ai'));
+    if(r.error){ document.getElementById('ai-msg').textContent='读取失败：'+r.error; return; }
+    const c=r.config||{};
+    document.getElementById('ai-enabled').checked=!!r.enabled;
+    document.getElementById('ai-backend').value=r.backend||'';
+    document.getElementById('ai-model').value=c.model||'';
+    document.getElementById('ai-endpoint').value=c.endpoint||'';
+    document.getElementById('ai-key').value=c.key||'';
+    document.getElementById('ai-prompt').value=c.systemPrompt||'';
+    document.getElementById('ai-extra').value=c.extraBody||'';
+    document.getElementById('kv-backend').textContent=r.backend||'(未知)';
+    document.getElementById('ai-msg').textContent='已读取。';
+  }catch(e){ document.getElementById('ai-msg').textContent='读取失败：'+e.message; }
+}
+async function saveAI(){
+  if(!IP){ toast('先指定设备'); return; }
+  const cfg={choice:'OpenAi',key:document.getElementById('ai-key').value.trim(),
+    systemPrompt:document.getElementById('ai-prompt').value,
+    model:document.getElementById('ai-model').value.trim(),
+    endpoint:document.getElementById('ai-endpoint').value.trim(),
+    extraBody:document.getElementById('ai-extra').value.trim(),cdn:'',aiType:0};
+  try{
+    const r=await jpost(wi('/api/ai'),{enabled:document.getElementById('ai-enabled').checked,
+      backend:document.getElementById('ai-backend').value.trim(),config:cfg});
+    document.getElementById('ai-msg').textContent=(r.backend_ok?'✅ 后端地址已写入':'❌ 后端地址失败')+' / '+(r.config_ok?'✅ 模型配置已写入':'❌ 模型配置失败');
+    toast('保存完成');
+  }catch(e){ document.getElementById('ai-msg').textContent='保存失败：'+e.message; }
+}
+
+// ---------- 设置：天气地点 / 音乐源 / 故事源 ----------
+async function loadSettings(){
+  // 天气（不依赖设备）
+  try{
+    const w=await api('/api/weather');
+    document.getElementById('w-loc').value=w.default_location||'';
+    document.getElementById('w-tz').value=w.timezone||'Asia/Shanghai';
+    document.getElementById('w-lat').value=(w.lat===undefined||w.lat===null)?'':w.lat;
+    document.getElementById('w-lon').value=(w.lon===undefined||w.lon===null)?'':w.lon;
+    document.getElementById('w-msg').textContent='已读取。';
+  }catch(e){ document.getElementById('w-msg').textContent='读取失败：'+e.message; }
+  if(!IP) return;
+  try{
+    const r=await api(wi('/api/music'));
+    const raw=r&&r.data&&r.data.config; let c={}; try{c=typeof raw==='string'?JSON.parse(raw):(raw||{});}catch(e){}
+    document.getElementById('m-provider').value=c.provider||'wy';
+    document.getElementById('m-endpoint').value=c.endpoint||'';
+    document.getElementById('m-msg').textContent='已读取。';
+  }catch(e){ document.getElementById('m-msg').textContent='读取失败：'+e.message; }
+  try{
+    const r=await api(wi('/api/story_service'));
+    const raw=r&&r.data&&r.data.config; let c={}; try{c=typeof raw==='string'?JSON.parse(raw):(raw||{});}catch(e){}
+    document.getElementById('s-provider').value=c.provider||'bilibili';
+    document.getElementById('s-endpoint').value=c.endpoint||'';
+    document.getElementById('s-msg').textContent='已读取。';
+  }catch(e){ document.getElementById('s-msg').textContent='读取失败：'+e.message; }
+}
+async function saveWeather(){
+  const body={default_location:document.getElementById('w-loc').value.trim(),
+              timezone:document.getElementById('w-tz').value.trim(),
+              lat:document.getElementById('w-lat').value.trim(),
+              lon:document.getElementById('w-lon').value.trim()};
+  try{
+    const r=await jpost('/api/weather',body);
+    document.getElementById('w-msg').textContent=(r&&r.ok)?('✅ 已保存：'+(r.weather.default_location||'')+'（立即生效，无需重启）'):'❌ 保存失败';
+    toast('天气地点已保存');
+  }catch(e){ document.getElementById('w-msg').textContent='保存失败：'+e.message; }
+}
+async function loadMusic(){
+  if(!IP){ toast('先指定设备'); return; }
+  try{
+    const r=await api(wi('/api/music'));
+    const raw=r&&r.data&&r.data.config; let c={}; try{c=typeof raw==='string'?JSON.parse(raw):(raw||{});}catch(e){}
+    document.getElementById('m-provider').value=c.provider||'wy';
+    document.getElementById('m-endpoint').value=c.endpoint||'';
+    document.getElementById('m-msg').textContent='已读取。';
+  }catch(e){ document.getElementById('m-msg').textContent='读取失败：'+e.message; }
+}
+async function saveMusic(){
+  try{ const r=await jpost(wi('/api/music'),{provider:document.getElementById('m-provider').value,endpoint:document.getElementById('m-endpoint').value.trim()});
+    document.getElementById('m-msg').textContent=(r&&r.status==='ok')?'✅ 已保存':'❌ 保存失败'; }catch(e){ document.getElementById('m-msg').textContent='保存失败：'+e.message; }
+}
+async function saveStorySvc(){
+  try{ const r=await jpost(wi('/api/story_service'),{provider:document.getElementById('s-provider').value,endpoint:document.getElementById('s-endpoint').value.trim()});
+    document.getElementById('s-msg').textContent=(r&&r.status==='ok')?'✅ 已保存':'❌ 保存失败'; }catch(e){ document.getElementById('s-msg').textContent='保存失败：'+e.message; }
+}
+
+// ---------- 故事 ----------
+let STORY_OFFSET=0, STORY_LIMIT=80, STORY_TOTAL=0;
+async function loadStory(){
+  const el=document.getElementById('story-list');
+  const rootEl=document.getElementById('story-root');
+  el.innerHTML='<p class="muted">加载中…</p>';
+  try{
+    const r=await api('/api/story?offset='+STORY_OFFSET+'&limit='+STORY_LIMIT);
+    STORY_TOTAL=r.total||0;
+    rootEl.textContent='目录：'+(r.root||'(未配置)')+(r.exists?'':'（不存在）');
+    if(!r.total){
+      el.innerHTML='<p class="muted">还没有故事音频。<br>把 mp3/m4a 放进 NAS 的 <code>'+(r.root||'音乐/audiobooks')+'</code> 目录，刷新即可显示。</p>';
+      document.getElementById('story-pager').classList.add('hide');
+      return;
+    }
+    renderInto('story-list', r.items||[]);
+    document.getElementById('story-pager').classList.toggle('hide', STORY_TOTAL<=STORY_LIMIT);
+    document.getElementById('story-pageinfo').textContent=(Math.floor(STORY_OFFSET/STORY_LIMIT)+1)+' / '+Math.max(1,Math.ceil(STORY_TOTAL/STORY_LIMIT))+'（共 '+STORY_TOTAL+' 个）';
+  }catch(e){ el.innerHTML='<p class="muted">加载失败：'+esc(e.message)+'</p>'; }
+}
+function storyPage(d){ STORY_OFFSET=Math.max(0,STORY_OFFSET+d*STORY_LIMIT); loadStory(); }
+
+// ---------- 广播 ----------
+async function loadRadio(){
+  const el=document.getElementById('radio-list');
+  el.innerHTML='<p class="muted">加载中…</p>';
+  try{
+    const r=await api('/api/radio');
+    const st=r.stations||[];
+    if(!st.length){ el.innerHTML='<p class="muted">还没有电台，用下面的表单加一个。</p>'; return; }
+    el.innerHTML=st.map((s,i)=>`
+      <div class="it">
+        <div class="meta">
+          <div class="t">${esc(s.name)}</div>
+          <div class="muted">${esc(s.url)}</div>
+        </div>
+        <button class="primary sm" onclick="playRadioStation(${i})">▶ 播放</button>
+        <button class="sm" onclick="delRadio(${i})">删除</button>
+      </div>`).join('');
+    el._stations=st;
+  }catch(e){ el.innerHTML='<p class="muted">加载失败：'+esc(e.message)+'</p>'; }
+}
+async function playRadioStation(i){
+  const st=(document.getElementById('radio-list')._stations||[])[i];
+  if(!st) return;
+  if(!IP){ toast('先指定设备'); return; }
+  toast('正在投放 '+st.name+'…');
+  try{
+    const r=await jpost(wi('/api/dlna/play'),{url:st.url,title:st.name,artist:'直播'});
+    toast(r.ok?('已播放：'+st.name):('投放失败：'+(r.error||'')));
+  }catch(e){ toast('投放失败：'+e.message); }
+}
+async function delRadio(i){
+  const st=(document.getElementById('radio-list')._stations||[])[i];
+  if(!st) return;
+  if(!confirm('删除电台「'+st.name+'」？')) return;
+  try{
+    await jpost('/api/radio',{op:'delete',url:st.url});
+    loadRadio();
+  }catch(e){ toast('删除失败：'+e.message); }
+}
+async function addRadio(){
+  const name=document.getElementById('r-name').value.trim();
+  const url=document.getElementById('r-url').value.trim();
+  if(!name||!url){ toast('名称和地址都要填'); return; }
+  try{
+    const r=await jpost('/api/radio',{op:'add',name,url});
+    document.getElementById('r-msg').textContent=(r&&r.ok)?('✅ 已添加，共 '+(r.stations||[]).length+' 个台'):'❌ 添加失败';
+    document.getElementById('r-name').value=''; document.getElementById('r-url').value='';
+    loadRadio();
+  }catch(e){ document.getElementById('r-msg').textContent='添加失败：'+e.message; }
+}
+
+// ---------- 导航 ----------
+const PAGES=['ctl','lib','story','radio','ai','cfg'];
+function go(page){
+  PAGES.forEach(p=>document.getElementById('page-'+p).classList.toggle('hide',p!==page));
+  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('act',a.dataset.page===page));
+  if(page==='ai') loadAI();
+  else if(page==='cfg') loadSettings();
+  else if(page==='lib'){ loadFavs().then(loadTab); }
+  else if(page==='story') loadStory();
+  else if(page==='radio') loadRadio();
+  else { refresh(); loadInto('ctl-history','/api/history',5); loadAI(); }
+}
+document.querySelectorAll('nav a').forEach(a=>{
+  a.onclick=e=>{ e.preventDefault(); const p=a.dataset.page;
+    history.replaceState(null,'','/'+(p==='ctl'?'':p)+(IP?'?ip='+encodeURIComponent(IP):''));
+    go(p); };
+});
+(function(){
+  const path=location.pathname.replace(/\/$/,'');
+  const map={'/ai':'ai','/lib':'lib','/story':'story','/radio':'radio','/cfg':'cfg','/music':'cfg'};
+  const page=map[path]||'ctl';
+  go(page);
+  setInterval(refresh,3000);
+  setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('zh-CN');},1000);
+})();
+</script>
+</body>
+</html>
