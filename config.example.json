@@ -1,0 +1,47 @@
+{
+  "listen": {
+    "host": "0.0.0.0",
+    "port": 8866
+  },
+
+  "llm": {
+    "_说明": "任何 OpenAI 兼容接口都行：DeepSeek / 通义千问 / GLM / Kimi / 本地 vLLM。需要支持 function calling",
+    "base_url": "https://api.deepseek.com/v1",
+    "api_key": "",
+    "model": "deepseek-chat",
+    "temperature": 0.0,
+    "extra_body": {}
+  },
+
+  "system_prompt": "你叫小讯，是这台斐讯 R1 智能音箱的助手。回答要口语化、简短，像跟人聊天，不要用 Markdown、列表或表情符号。用户问天气或想听歌、听广播时，调用对应的工具。",
+
+  "media": {
+    "_说明": "root 是主目录（URL 不带前缀）；roots 可配多个目录，其它目录 URL 带 @key/ 前缀。public_base 必须是音箱能访问到的地址",
+    "root": "/path/to/music",
+    "roots": [
+      { "key": "", "path": "/path/to/music" },
+      { "key": "story", "path": "/path/to/music/audiobooks" }
+    ],
+    "public_base": "http://192.168.1.10:8866",
+    "max_results": 100,
+    "rescan_seconds": 60
+  },
+
+  "weather": {
+    "_说明": "用 Open-Meteo，免 API Key；default_location 用于用户没说城市时。县级地名常查不到，建议直接填 lat/lon",
+    "default_location": "北京",
+    "lat": 39.9042,
+    "lon": 116.4074,
+    "timezone": "Asia/Shanghai",
+    "aliases": {}
+  },
+
+  "radio": {
+    "_说明": "广播电台列表；name 支持模糊匹配，url 是直播流地址（mp3/aac）",
+    "stations": []
+  },
+
+  "devices": [
+    { "name": "客厅", "ip": "192.168.1.50" }
+  ]
+}
